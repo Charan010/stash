@@ -18,6 +18,13 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
+func NewWriterAt(w io.Writer, offset uint64) *Writer {
+	return &Writer{
+		w:      w,
+		offset: offset,
+	}
+}
+
 func (pw *Writer) Offset() uint64 {
 	return pw.offset
 }
