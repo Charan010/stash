@@ -195,6 +195,19 @@ func (s *Store) Restore(id objecthash.Hash, w io.Writer) error {
 
 }
 
+func (s *Store) MissingHashes(hashes []objecthash.Hash) []objecthash.Hash {
+
+	var missing []objecthash.Hash
+
+	for _, hash := range hashes {
+		if !s.Has(hash) {
+			missing = append(missing, hash)
+		}
+	}
+
+	return missing
+}
+
 func writeAll(w io.Writer, data []byte) error {
 	for len(data) > 0 {
 		n, err := w.Write(data)
