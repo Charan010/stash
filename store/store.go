@@ -163,6 +163,32 @@ func (s *Store) GetManifest(id objecthash.Hash) (manifest.Manifest, error) {
 	return m, nil
 }
 
+func (s *Store) RestoreManifest(m manifest.Manifest, w io.Writer) error {
+
+	var written uint64
+
+	for i, chunkHash := range m.Chunks {
+
+		data, err := s.Get(chunkHash)
+
+		if err != nil {
+			return fmt.Errorf("store: restore chunk error %d (%s) : %w", i, chunkHash, err)
+		}
+
+		if err := writeAll(w, data); err != nil {
+			return fmt.Errorf("store: write restored chunk %d : %w", i, err)
+		}
+
+		written += uint64(len(data))
+	}
+
+	if written != m.Size {
+		return fmt.Errorf("store: restored size mistmatch: expected=%d, actual=%d", m.Size, written)
+	}
+
+	return nil
+}
+
 func (s *Store) Restore(id objecthash.Hash, w io.Writer) error {
 
 	m, err := s.GetManifest(id)
@@ -171,28 +197,7 @@ func (s *Store) Restore(id objecthash.Hash, w io.Writer) error {
 		return fmt.Errorf("store: load manifest %s : %w", id, err)
 	}
 
-	var written uint64
-
-	for i, chunkHash := range m.Chunks {
-		data, err := s.Get(chunkHash)
-
-		if err != nil {
-			return fmt.Errorf("store: restore chunk %d (%s): %w", i, chunkHash, err)
-		}
-
-		if err := writeAll(w, data); err != nil {
-			return fmt.Errorf("store: write restored chunk %d: %w", i, err)
-		}
-
-		written += uint64(len(data))
-	}
-
-	if written != m.Size {
-		return fmt.Errorf("store: restored size mismatch: expected=%d actual=%d", m.Size, written)
-	}
-
-	return nil
-
+	return s.RestoreManifest(m, w)
 }
 
 func (s *Store) MissingHashes(hashes []objecthash.Hash) []objecthash.Hash {
